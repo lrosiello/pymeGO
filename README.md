@@ -38,8 +38,8 @@ catalog-go/
 ├── pkg/                             # Utilidades agnósticas (Logger/slog, JWT, WhatsApp Builder)
 ├── migrations/                      # Scripts DDL de PostgreSQL
 └── .env.example
-
-
+```
+---
 
 🛠️ Base de Datos y Modelo de Datos
 El sistema maneja un esquema relacional optimizado en PostgreSQL:
