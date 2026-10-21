@@ -93,31 +93,6 @@ func (r *CategoryRepository) List(ctx context.Context) ([]domain.Category, error
 	return categories, nil
 }
 
-// ListActive devuelve solo las categorías activas (vitrina pública).
-func (r *CategoryRepository) ListActive(ctx context.Context) ([]domain.Category, error) {
-	query := `SELECT ` + categoryColumns + ` FROM categories WHERE is_active = TRUE ORDER BY name ASC`
-
-	rows, err := querier(ctx, r.pool).Query(ctx, query)
-	if err != nil {
-		return nil, fmt.Errorf("postgres: error al listar categorías activas: %w", err)
-	}
-	defer rows.Close()
-
-	categories := make([]domain.Category, 0)
-	for rows.Next() {
-		category, err := scanCategory(rows)
-		if err != nil {
-			return nil, err
-		}
-		categories = append(categories, *category)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("postgres: error al iterar categorías activas: %w", err)
-	}
-
-	return categories, nil
-}
-
 // Update actualiza los campos mutables de una categoría.
 func (r *CategoryRepository) Update(ctx context.Context, category *domain.Category) error {
 	query := `UPDATE categories
@@ -309,85 +284,6 @@ func (r *ProductRepository) ListVariantsByProduct(ctx context.Context, productID
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("postgres: error al iterar variantes: %w", err)
-	}
-
-	return variants, nil
-}
-
-// ListSellable devuelve los productos visibles en la vitrina pública: activos y
-// con al menos una variante activa con stock disponible. Si categoryID no es
-// nil, restringe el resultado a esa categoría.
-func (r *ProductRepository) ListSellable(ctx context.Context, categoryID *string) ([]domain.Product, error) {
-	query := `SELECT ` + productColumns + ` FROM products
-	          WHERE is_active = TRUE
-	            AND ($1::uuid IS NULL OR category_id = $1::uuid)
-	            AND EXISTS (
-	                SELECT 1 FROM product_variants v
-	                WHERE v.product_id = products.id
-	                  AND v.is_active = TRUE
-	                  AND v.stock_quantity > 0
-	            )
-	          ORDER BY created_at DESC`
-
-	rows, err := querier(ctx, r.pool).Query(ctx, query, categoryID)
-	if err != nil {
-		return nil, fmt.Errorf("postgres: error al listar productos vendibles: %w", err)
-	}
-	defer rows.Close()
-
-	products := make([]domain.Product, 0)
-	for rows.Next() {
-		product, err := scanProduct(rows)
-		if err != nil {
-			return nil, err
-		}
-		products = append(products, *product)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("postgres: error al iterar productos vendibles: %w", err)
-	}
-
-	return products, nil
-}
-
-// GetSellableByID devuelve un producto visible en la vitrina pública o
-// domain.ErrNotFound si está inactivo, no existe o no tiene stock disponible.
-func (r *ProductRepository) GetSellableByID(ctx context.Context, id string) (*domain.Product, error) {
-	query := `SELECT ` + productColumns + ` FROM products
-	          WHERE id = $1
-	            AND is_active = TRUE
-	            AND EXISTS (
-	                SELECT 1 FROM product_variants v
-	                WHERE v.product_id = products.id
-	                  AND v.is_active = TRUE
-	                  AND v.stock_quantity > 0
-	            )`
-
-	return scanProduct(querier(ctx, r.pool).QueryRow(ctx, query, id))
-}
-
-// ListActiveVariantsByProduct devuelve las variantes activas de un producto.
-func (r *ProductRepository) ListActiveVariantsByProduct(ctx context.Context, productID string) ([]domain.ProductVariant, error) {
-	query := `SELECT ` + variantColumns + ` FROM product_variants
-	          WHERE product_id = $1 AND is_active = TRUE
-	          ORDER BY created_at ASC`
-
-	rows, err := querier(ctx, r.pool).Query(ctx, query, productID)
-	if err != nil {
-		return nil, fmt.Errorf("postgres: error al listar variantes activas: %w", err)
-	}
-	defer rows.Close()
-
-	variants := make([]domain.ProductVariant, 0)
-	for rows.Next() {
-		variant, err := scanVariant(rows)
-		if err != nil {
-			return nil, err
-		}
-		variants = append(variants, *variant)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("postgres: error al iterar variantes activas: %w", err)
 	}
 
 	return variants, nil

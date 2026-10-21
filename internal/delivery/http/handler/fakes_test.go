@@ -91,30 +91,3 @@ func performRequest(t *testing.T, handler gin.HandlerFunc, method, target, body 
 	handler(c)
 	return w
 }
-
-type fakeCatalogUC struct {
-	categoriesFn func(ctx context.Context) ([]domain.Category, error)
-	productsFn   func(ctx context.Context, categoryID *string) ([]usecase.CatalogProduct, error)
-	getFn        func(ctx context.Context, id string) (*usecase.CatalogProduct, error)
-}
-
-func (f *fakeCatalogUC) ListCategories(ctx context.Context) ([]domain.Category, error) {
-	if f.categoriesFn != nil {
-		return f.categoriesFn(ctx)
-	}
-	return nil, nil
-}
-
-func (f *fakeCatalogUC) ListProducts(ctx context.Context, categoryID *string) ([]usecase.CatalogProduct, error) {
-	if f.productsFn != nil {
-		return f.productsFn(ctx, categoryID)
-	}
-	return nil, nil
-}
-
-func (f *fakeCatalogUC) GetProduct(ctx context.Context, id string) (*usecase.CatalogProduct, error) {
-	if f.getFn != nil {
-		return f.getFn(ctx, id)
-	}
-	return nil, nil
-}

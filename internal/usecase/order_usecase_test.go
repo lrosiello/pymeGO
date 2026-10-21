@@ -10,14 +10,10 @@ import (
 )
 
 func newOrderUC() (OrderUseCase, *fakeOrderRepo, *fakeProductRepo, *fakeTx) {
-	return newOrderUCWithMode(domain.PriceModeB2C)
-}
-
-func newOrderUCWithMode(mode domain.PriceMode) (OrderUseCase, *fakeOrderRepo, *fakeProductRepo, *fakeTx) {
 	orders := newFakeOrderRepo()
 	products := newFakeProductRepo()
 	tx := &fakeTx{}
-	return NewOrderUseCase(orders, products, tx, "54 9 11 2233-4455", mode), orders, products, tx
+	return NewOrderUseCase(orders, products, tx, "54 9 11 2233-4455"), orders, products, tx
 }
 
 func seedCatalog(products *fakeProductRepo, stock int) (*domain.Product, *domain.ProductVariant) {
@@ -287,66 +283,5 @@ func TestOrderGet_BuildsLink(t *testing.T) {
 	}
 	if !strings.Contains(res.WhatsAppText, "Remera") {
 		t.Errorf("WhatsAppText no contiene el producto: %q", res.WhatsAppText)
-	}
-}
-
-func b2bPrice(value float64) *float64 {
-	return &value
-}
-
-func TestOrderCreate_B2BPricing(t *testing.T) {
-	uc, _, products, _ := newOrderUCWithMode(domain.PriceModeB2B)
-	_, variant := seedCatalog(products, 10)
-	variant.B2BPrice = b2bPrice(1200)
-
-	res, err := uc.Create(context.Background(), CreateOrderInput{
-		CustomerName:  "Mayorista",
-		CustomerPhone: "123",
-		Items:         []CreateOrderItemInput{{VariantID: variant.ID, Quantity: 2}},
-	})
-	if err != nil {
-		t.Fatalf("Create() error inesperado: %v", err)
-	}
-	if res.Order.TotalAmount != 2400 {
-		t.Errorf("TotalAmount = %v, se esperaba 2400", res.Order.TotalAmount)
-	}
-	if res.Order.Items[0].UnitPrice != 1200 {
-		t.Errorf("UnitPrice = %v, se esperaba 1200", res.Order.Items[0].UnitPrice)
-	}
-	if !strings.Contains(res.WhatsAppText, "Total: $2400.00") {
-		t.Errorf("WhatsAppText no contiene el total B2B: %q", res.WhatsAppText)
-	}
-}
-
-func TestOrderCreate_B2BFallbackToRetail(t *testing.T) {
-	uc, _, products, _ := newOrderUCWithMode(domain.PriceModeB2B)
-	_, variant := seedCatalog(products, 10)
-	variant.B2BPrice = nil
-
-	res, err := uc.Create(context.Background(), CreateOrderInput{
-		CustomerName:  "Mayorista",
-		CustomerPhone: "123",
-		Items:         []CreateOrderItemInput{{VariantID: variant.ID, Quantity: 1}},
-	})
-	if err != nil {
-		t.Fatalf("Create() error inesperado: %v", err)
-	}
-	if res.Order.TotalAmount != 1500 || res.Order.Items[0].UnitPrice != 1500 {
-		t.Errorf("se esperaba fallback al precio minorista, total=%v unit=%v", res.Order.TotalAmount, res.Order.Items[0].UnitPrice)
-	}
-}
-
-func TestOrderCreate_InactiveProduct(t *testing.T) {
-	uc, _, products, _ := newOrderUC()
-	product, variant := seedCatalog(products, 10)
-	product.IsActive = false
-
-	_, err := uc.Create(context.Background(), CreateOrderInput{
-		CustomerName:  "Juan",
-		CustomerPhone: "123",
-		Items:         []CreateOrderItemInput{{VariantID: variant.ID, Quantity: 1}},
-	})
-	if !errors.Is(err, domain.ErrValidation) {
-		t.Fatalf("Create() = %v, se esperaba ErrValidation por producto inactivo", err)
 	}
 }

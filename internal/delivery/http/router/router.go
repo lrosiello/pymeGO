@@ -23,7 +23,6 @@ func New(
 	authHandler *handler.AuthHandler,
 	productHandler *handler.ProductHandler,
 	orderHandler *handler.OrderHandler,
-	catalogHandler *handler.CatalogHandler,
 	jwtManager *jwt.Manager,
 ) *gin.Engine {
 	if cfg.IsProduction() {
@@ -48,14 +47,6 @@ func New(
 		auth.POST("/login", authHandler.Login)
 	}
 
-	// Vitrina pública: solo lectura de categorías y productos vendibles.
-	publicCatalog := v1.Group("/catalog")
-	{
-		publicCatalog.GET("/categories", catalogHandler.ListCategories)
-		publicCatalog.GET("/products", catalogHandler.ListProducts)
-		publicCatalog.GET("/products/:id", catalogHandler.GetProduct)
-	}
-
 	// Checkout público: el cliente registra su pedido y recibe el link de
 	// WhatsApp. El precio y el stock se resuelven en el servidor.
 	v1.POST("/orders", orderHandler.Create)
@@ -68,30 +59,30 @@ func New(
 	}
 
 	// Catálogo: solo administradores y staff del comercio.
-	adminCatalog := protected.Group("")
-	adminCatalog.Use(middleware.RequireRole("admin", "staff"))
+	catalog := protected.Group("")
+	catalog.Use(middleware.RequireRole("admin", "staff"))
 	{
-		adminCatalog.POST("/categories", productHandler.CreateCategory)
-		adminCatalog.GET("/categories", productHandler.ListCategories)
-		adminCatalog.PUT("/categories/:id", productHandler.UpdateCategory)
-		adminCatalog.DELETE("/categories/:id", productHandler.DeleteCategory)
+		catalog.POST("/categories", productHandler.CreateCategory)
+		catalog.GET("/categories", productHandler.ListCategories)
+		catalog.PUT("/categories/:id", productHandler.UpdateCategory)
+		catalog.DELETE("/categories/:id", productHandler.DeleteCategory)
 
-		adminCatalog.POST("/products", productHandler.CreateProduct)
-		adminCatalog.GET("/products", productHandler.ListProducts)
-		adminCatalog.GET("/products/:id", productHandler.GetProduct)
-		adminCatalog.PUT("/products/:id", productHandler.UpdateProduct)
-		adminCatalog.DELETE("/products/:id", productHandler.DeleteProduct)
+		catalog.POST("/products", productHandler.CreateProduct)
+		catalog.GET("/products", productHandler.ListProducts)
+		catalog.GET("/products/:id", productHandler.GetProduct)
+		catalog.PUT("/products/:id", productHandler.UpdateProduct)
+		catalog.DELETE("/products/:id", productHandler.DeleteProduct)
 
-		adminCatalog.GET("/products/:id/variants", productHandler.ListVariants)
-		adminCatalog.POST("/products/:id/variants", productHandler.AddVariant)
-		adminCatalog.PUT("/variants/:id", productHandler.UpdateVariant)
-		adminCatalog.DELETE("/variants/:id", productHandler.DeleteVariant)
-		adminCatalog.PATCH("/variants/:id/stock", productHandler.AdjustStock)
+		catalog.GET("/products/:id/variants", productHandler.ListVariants)
+		catalog.POST("/products/:id/variants", productHandler.AddVariant)
+		catalog.PUT("/variants/:id", productHandler.UpdateVariant)
+		catalog.DELETE("/variants/:id", productHandler.DeleteVariant)
+		catalog.PATCH("/variants/:id/stock", productHandler.AdjustStock)
 
 		// Gestión de pedidos (solo admin/staff).
-		adminCatalog.GET("/orders", orderHandler.List)
-		adminCatalog.GET("/orders/:id", orderHandler.Get)
-		adminCatalog.PATCH("/orders/:id/status", orderHandler.UpdateStatus)
+		catalog.GET("/orders", orderHandler.List)
+		catalog.GET("/orders/:id", orderHandler.Get)
+		catalog.PATCH("/orders/:id/status", orderHandler.UpdateStatus)
 	}
 
 	return r

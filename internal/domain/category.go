@@ -26,8 +26,6 @@ type CategoryRepository interface {
 	Create(ctx context.Context, category *Category) error
 	GetByID(ctx context.Context, id string) (*Category, error)
 	List(ctx context.Context) ([]Category, error)
-	// ListActive devuelve solo las categorías activas (vitrina pública).
-	ListActive(ctx context.Context) ([]Category, error)
 	Update(ctx context.Context, category *Category) error
 	Delete(ctx context.Context, id string) error
 }

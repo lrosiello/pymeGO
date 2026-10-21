@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"sort"
 	"time"
 
 	"pymego/internal/domain"
@@ -335,68 +334,4 @@ func (f *fakeTx) WithinTransaction(ctx context.Context, fn func(ctx context.Cont
 		return f.err
 	}
 	return fn(ctx)
-}
-
-// ListActive devuelve solo las categorías activas (vitrina pública).
-func (f *fakeCategoryRepo) ListActive(_ context.Context) ([]domain.Category, error) {
-	out := make([]domain.Category, 0, len(f.items))
-	for _, c := range f.items {
-		if c.IsActive {
-			out = append(out, *c)
-		}
-	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
-	return out, nil
-}
-
-// hasSellableVariant indica si el producto tiene al menos una variante activa
-// con stock disponible.
-func (f *fakeProductRepo) hasSellableVariant(productID string) bool {
-	for _, v := range f.variants {
-		if v.ProductID == productID && v.IsActive && v.StockQuantity > 0 {
-			return true
-		}
-	}
-	return false
-}
-
-// ListSellable devuelve productos activos con stock disponible, opcionalmente
-// filtrados por categoría.
-func (f *fakeProductRepo) ListSellable(_ context.Context, categoryID *string) ([]domain.Product, error) {
-	out := make([]domain.Product, 0)
-	for _, p := range f.products {
-		if !p.IsActive {
-			continue
-		}
-		if categoryID != nil && (p.CategoryID == nil || *p.CategoryID != *categoryID) {
-			continue
-		}
-		if !f.hasSellableVariant(p.ID) {
-			continue
-		}
-		out = append(out, *p)
-	}
-	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.After(out[j].CreatedAt) })
-	return out, nil
-}
-
-// GetSellableByID devuelve un producto vendible o ErrNotFound.
-func (f *fakeProductRepo) GetSellableByID(_ context.Context, id string) (*domain.Product, error) {
-	p, ok := f.products[id]
-	if !ok || !p.IsActive || !f.hasSellableVariant(id) {
-		return nil, domain.ErrNotFound
-	}
-	return p, nil
-}
-
-// ListActiveVariantsByProduct devuelve las variantes activas de un producto.
-func (f *fakeProductRepo) ListActiveVariantsByProduct(_ context.Context, productID string) ([]domain.ProductVariant, error) {
-	out := make([]domain.ProductVariant, 0)
-	for _, v := range f.variants {
-		if v.ProductID == productID && v.IsActive {
-			out = append(out, *v)
-		}
-	}
-	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.Before(out[j].CreatedAt) })
-	return out, nil
 }

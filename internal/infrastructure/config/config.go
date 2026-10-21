@@ -11,8 +11,6 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-
-	"pymego/internal/domain"
 )
 
 // Config agrupa toda la configuración tipada de la aplicación.
@@ -21,7 +19,6 @@ type Config struct {
 	DB       DBConfig
 	JWT      JWTConfig
 	WhatsApp WhatsAppConfig
-	Catalog  CatalogConfig
 }
 
 // AppConfig contiene parámetros generales del servidor HTTP.
@@ -54,11 +51,6 @@ type WhatsAppConfig struct {
 	Number string
 }
 
-// CatalogConfig contiene la política de precios del comercio.
-type CatalogConfig struct {
-	PriceMode domain.PriceMode
-}
-
 // IsProduction indica si la aplicación corre en entorno productivo.
 func (c *Config) IsProduction() bool {
 	return strings.EqualFold(c.App.Env, "production")
@@ -75,11 +67,6 @@ func Load() (*Config, error) {
 	expiresIn, err := time.ParseDuration(envOrDefault("JWT_EXPIRES_IN", "24h"))
 	if err != nil {
 		return nil, fmt.Errorf("config: JWT_EXPIRES_IN inválido: %w", err)
-	}
-
-	priceMode, err := domain.ParsePriceMode(envOrDefault("CATALOG_PRICE_MODE", string(domain.PriceModeB2C)))
-	if err != nil {
-		return nil, fmt.Errorf("config: CATALOG_PRICE_MODE inválido: %w", err)
 	}
 
 	cfg := &Config{
@@ -104,9 +91,6 @@ func Load() (*Config, error) {
 		},
 		WhatsApp: WhatsAppConfig{
 			Number: envOrDefault("WHATSAPP_NUMBER", ""),
-		},
-		Catalog: CatalogConfig{
-			PriceMode: priceMode,
 		},
 	}
 
