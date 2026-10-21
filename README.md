@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-# pymeGO
-=======
 # pymeGO
 
 # 🛍️ PymeGo Backend - SaaS Catalog & WhatsApp Ordering API
@@ -110,4 +107,3 @@ go run cmd/api/main.go
 Luis Antonio Rosiello
 
 Backend Developer (Go & Java)
->>>>>>> parent of 1647046 (Creacion de catalogo publico)
