@@ -66,15 +66,17 @@ func run() error {
 	// Casos de uso.
 	authUseCase := usecase.NewAuthUseCase(userRepo, jwtManager)
 	productUseCase := usecase.NewProductUseCase(categoryRepo, productRepo, txManager)
-	orderUseCase := usecase.NewOrderUseCase(orderRepo, productRepo, txManager, cfg.WhatsApp.Number)
+	catalogUseCase := usecase.NewCatalogUseCase(categoryRepo, productRepo, cfg.Catalog.PriceMode)
+	orderUseCase := usecase.NewOrderUseCase(orderRepo, productRepo, txManager, cfg.WhatsApp.Number, cfg.Catalog.PriceMode)
 
 	// Handlers.
 	authHandler := handler.NewAuthHandler(authUseCase, log)
 	productHandler := handler.NewProductHandler(productUseCase, log)
 	orderHandler := handler.NewOrderHandler(orderUseCase, log)
+	catalogHandler := handler.NewCatalogHandler(catalogUseCase, log)
 
 	// Router.
-	engine := router.New(cfg, log, authHandler, productHandler, orderHandler, jwtManager)
+	engine := router.New(cfg, log, authHandler, productHandler, orderHandler, catalogHandler, jwtManager)
 
 	server := &http.Server{
 		Addr:         ":" + cfg.App.Port,

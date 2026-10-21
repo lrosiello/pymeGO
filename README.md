@@ -75,6 +75,15 @@ PUT /variants/:id / DELETE /variants/:id — Actualizar o dar de baja variantes.
 
 PATCH /variants/:id/stock — Ajuste atómico de stock por delta (ej: {"delta": -3}).
 
+Catálogo Público (sin autenticación)
+GET /api/v1/catalog/categories — Categorías activas.
+
+GET /api/v1/catalog/products — Productos vendibles (activos y con stock) con sus variantes activas. Admite ?category_id=<uuid>.
+
+GET /api/v1/catalog/products/:id — Detalle público de un producto vendible (404 si no existe, está inactivo o no tiene stock).
+
+El precio expuesto es el efectivo según CATALOG_PRICE_MODE (b2c o b2b), y es el mismo que se usa para calcular el total de los pedidos.
+
 Pedidos & WhatsApp
 POST /orders — Checkout público del cliente (descuenta stock de forma atómica, valida precios server-side y genera el enlace de WhatsApp).
 
@@ -95,6 +104,7 @@ Fragmento de código
 PORT=8080
 DATABASE_URL=postgres://usuario:password@localhost:5432/tubasedatos?sslmode=disable
 JWT_SECRET=tu_secreto_jwt_super_seguro
+CATALOG_PRICE_MODE=b2c
 WHATSAPP_NUMBER=5492490000000
 Ejecutar migraciones:
 Aplica el script ubicado en migrations/0001_init.sql sobre tu base de datos PostgreSQL.

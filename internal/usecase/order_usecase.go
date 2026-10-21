@@ -51,21 +51,25 @@ type orderUseCase struct {
 	products       domain.ProductRepository
 	tx             domain.TxManager
 	whatsappNumber string
+	priceMode      domain.PriceMode
 }
 
 // NewOrderUseCase construye el caso de uso de pedidos. whatsappNumber es el
-// número destino del comercio (configuración) usado para armar el enlace.
+// número destino del comercio (configuración) usado para armar el enlace, y
+// priceMode define la lista de precios con la que se calcula el total.
 func NewOrderUseCase(
 	orders domain.OrderRepository,
 	products domain.ProductRepository,
 	tx domain.TxManager,
 	whatsappNumber string,
+	priceMode domain.PriceMode,
 ) OrderUseCase {
 	return &orderUseCase{
 		orders:         orders,
 		products:       products,
 		tx:             tx,
 		whatsappNumber: whatsappNumber,
+		priceMode:      priceMode,
 	}
 }
 
@@ -116,6 +120,9 @@ func (uc *orderUseCase) Create(ctx context.Context, input CreateOrderInput) (*Or
 			if err != nil {
 				return err
 			}
+			if !product.IsActive {
+				return fmt.Errorf("items[%d]: %w", i, domain.NewValidationError("variant_id", "el producto está inactivo"))
+			}
 
 			// Descuento atómico: falla con error de validación si no hay stock.
 			if _, err := uc.products.AdjustStockQuantity(txCtx, in.VariantID, -in.Quantity); err != nil {
@@ -125,14 +132,16 @@ func (uc *orderUseCase) Create(ctx context.Context, input CreateOrderInput) (*Or
 				return err
 			}
 
+			unitPrice := variant.PriceForMode(uc.priceMode)
+
 			order.Items = append(order.Items, domain.OrderItem{
 				VariantID:   variant.ID,
 				ProductName: product.Name,
 				VariantName: variant.Name,
 				Quantity:    in.Quantity,
-				UnitPrice:   variant.Price,
+				UnitPrice:   unitPrice,
 			})
-			total += variant.Price * float64(in.Quantity)
+			total += unitPrice * float64(in.Quantity)
 		}
 
 		order.TotalAmount = total
